@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    // this enables stricter inference for data properties on `this`
+    "strict": true,
+    "jsx": "preserve",
+    "moduleResolution": "node",
+    "useDefineForClassFields": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "lib": ["esnext", "dom"],
+    "allowJs": true,
+    "baseUrl": "",
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts","test/**/*.test.ts","vite.*.config.ts","scripts/**/*.ts","src/typings/**/*.d.ts"]
+}

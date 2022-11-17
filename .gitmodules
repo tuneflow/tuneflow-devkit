@@ -1,0 +1,6 @@
+[submodule "src/plugin/tuneflow-helloworld-plugin"]
+	path = src/plugin/tuneflow-helloworld-plugin
+	url = https://github.com/andantei/tuneflow-helloworld-plugin.git
+[submodule "protos/src"]
+	path = protos/src
+	url = https://github.com/andantei/tuneflow-proto.git
