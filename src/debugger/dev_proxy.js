@@ -28,7 +28,6 @@ server.of('/daw').on('connection', socket => {
   });
   for(const messageType of ['set-song','init-plugin','run-plugin']) {
     socket.on(messageType, (payload, callback) => {
-      console.log(messageType);
       if (!devKitClient) {
         return;
       }
