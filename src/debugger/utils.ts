@@ -80,6 +80,12 @@ async function deserializeSong(encodedSong: string) {
       bpm: tempo.bpm as number,
     });
   }
+  for (const structure of songProto.structures) {
+    song.createStructure({
+      tick: structure.tick as number,
+      type: structure.type as number,
+    });
+  }
   const masterTrackProto = songProto.masterTrack as songProtoModule.Track;
   // @ts-ignore
   song.masterTrack = new Track({
@@ -237,6 +243,7 @@ async function serializeSong(song: Song) {
   updateSongTimeSignatures(songProto, song);
   // Sync tempo.
   updateSongTempos(songProto, song);
+  updateSongStructures(songProto, song);
   const tickToSecondStepper = new TickToSecondStepper(song.getTempoChanges(), song.getResolution());
   // Sync master track.
   if (!songProto.masterTrack) {
@@ -330,6 +337,15 @@ function updateSongTempos(songProto: songProtoModule.Song, song: Song) {
       songProto.tempos.length - song.getTempoChanges().length,
     );
   }
+}
+
+function updateSongStructures(songProto: songProtoModule.Song, song: Song) {
+  songProto.structures = song.getStructures().map(item =>
+    songProtoModule.StructureMarker.create({
+      tick: item.getTick(),
+      type: item.getType(),
+    }),
+  );
 }
 
 function updateSongTimeSignatures(songProto: songProtoModule.Song, song: Song) {
