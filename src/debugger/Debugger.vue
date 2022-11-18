@@ -115,6 +115,7 @@ export default defineComponent({
         <li>在文件夹目录中找到你的代码： localhost:9999/src/plugin/...</li>
         <img :class="$style.Image" src="../../../public/images/switch_to_plugin_file.png" />
         <li>点击代码左侧的行数添加断点</li>
+        <img :class="$style.Image" src="../../../public/images/plugin_debug.png" />
       </ul>
     </div>
   </div>
