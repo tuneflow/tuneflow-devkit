@@ -16,15 +16,87 @@ import {
 } from 'tuneflow';
 import _ from 'underscore';
 import i18next from 'i18next';
+import socketio from 'socket.io-client';
+import Config from './config.json';
 
 import { song as songProtoModule } from './pbjs/song';
 
+const SOCKETIO_CLIENT = socketio(`http://localhost:${Config.DevProxyPort}/devKit`);
+
+export function getProxySocketClient() {
+  return SOCKETIO_CLIENT;
+}
+
 export function createReadAPIs(): ReadAPIs {
   return {
-    readAudioBuffer: async (audioFile: string | File) => null,
     translateLabel: (labelText: LabelText) => getTranslatedLabelText(labelText),
     serializeSong: async (song: Song) => serializeSong(song),
     deserializeSong: async (encodedSong: string) => deserializeSong(encodedSong),
+    readAudioBuffer: async (audioFile: string | File) => {
+      let fileContent: ArrayBuffer;
+      if (typeof audioFile === 'string') {
+        // Local file.
+        const response = await new Promise((resolve, reject) => {
+          SOCKETIO_CLIENT.emit('call-api', ['readFile', audioFile], (ack: any) => {
+            resolve(ack);
+          });
+        });
+        if (!response) {
+          return null;
+        }
+        fileContent = response as ArrayBuffer;
+      } else {
+        // File object.
+        fileContent = await (audioFile as File).arrayBuffer();
+      }
+      return new Promise((resolve, reject) => {
+        const audioContext = new AudioContext();
+        return audioContext.decodeAudioData(fileContent, audioBuffer => {
+          // Do something with audioBuffer
+          resolve(audioBuffer);
+        });
+      });
+    },
+    readFile: async (filePath: string) => {
+      return await new Promise((resolve, reject) => {
+        SOCKETIO_CLIENT.emit('call-api', ['readFile', filePath], (ack: any) => {
+          resolve(ack);
+        });
+      }).then(response => {
+        if (!response) {
+          return null;
+        }
+        return new Uint8Array(response as ArrayBuffer);
+      });
+    },
+    getAvailableAudioPlugins: async () => {
+      return new Promise((resolve, reject) => {
+        SOCKETIO_CLIENT.emit('call-api', ['getAvailableAudioPlugins'], (ack: any) => {
+          resolve(ack);
+        });
+      });
+    },
+    getFilesInDirectory: async (folderPath: string) => {
+      return new Promise((resolve, reject) => {
+        SOCKETIO_CLIENT.emit('call-api', ['getFilesInDirectory', folderPath], (ack: any) => {
+          resolve(ack);
+        });
+      });
+    },
+    resolvePath: async (path1: string, path2: string) => {
+      return new Promise((resolve, reject) => {
+        SOCKETIO_CLIENT.emit('call-api', ['resolvePath', path1, path2], (ack: any) => {
+          resolve(ack);
+        });
+      });
+    },
+    readPluginSpec: async (specPath: string) => {
+      return new Promise((resolve, reject) => {
+        SOCKETIO_CLIENT.emit('call-api', ['readPluginSpec', specPath], (ack: any) => {
+          resolve(ack);
+        });
+      });
+    },
   };
 }
 
@@ -499,6 +571,15 @@ function updateTrackProtoToTrack(
       }
       if (trackProto.samplerPlugin.isEnabled !== trackSamplerPlugin.getIsEnabled()) {
         trackProto.samplerPlugin.isEnabled = trackSamplerPlugin.getIsEnabled();
+      }
+      if (
+        (!!trackProto.samplerPlugin.base64States && !trackSamplerPlugin.getBase64States()) ||
+        (!trackProto.samplerPlugin.base64States && !!trackSamplerPlugin.getBase64States()) ||
+        (!!trackProto.samplerPlugin.base64States &&
+          !!trackSamplerPlugin.getBase64States() &&
+          trackProto.samplerPlugin.base64States !== trackSamplerPlugin.getBase64States())
+      ) {
+        trackProto.samplerPlugin.base64States = trackSamplerPlugin.getBase64States();
       }
     } else if (trackProto.samplerPlugin) {
       delete trackProto.samplerPlugin;

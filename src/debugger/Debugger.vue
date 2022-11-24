@@ -1,17 +1,15 @@
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue';
-import socketio from 'socket.io-client';
 import { TuneflowPlugin } from 'tuneflow';
 import PluginClass from '../plugin/export';
-import Config from './config.json';
-import { createReadAPIs } from './utils';
+import { createReadAPIs, getProxySocketClient } from './utils';
 
 export default defineComponent({
   setup() {
     const isRunningPlugin = ref(false);
     const pluginAvailable = computed(() => PluginClass !== null && PluginClass !== undefined);
     const remoteApis = computed(() => createReadAPIs());
-    const socketioClient = socketio(`http://localhost:${Config.DevProxyPort}/devKit`);
+    const socketioClient = getProxySocketClient();
     const serializedSong = ref(null as any);
     const plugin = ref(null as any);
     const pluginName = PluginClass
@@ -74,7 +72,7 @@ export default defineComponent({
         const song = await this.remoteApis.deserializeSong(this.serializedSong);
         this.isRunningPlugin = true;
         try {
-          await this.plugin.run(song, params);
+          await this.plugin.run(song, params, this.remoteApis);
         } catch (e: any) {
           console.error(e);
         }
@@ -110,7 +108,11 @@ export default defineComponent({
           打开Chrome开发者工具：使用快捷键 Ctrl+Shift+I（Windows）或
           Cmd+Opt+I（Mac），或在页面上右键并选择“检查”(Inspect)
         </li>
-        <img :class="$style.Image" :style="{maxWidth: '400px'}" src="../../../public/images/toggle_devtools.png" />
+        <img
+          :class="$style.Image"
+          :style="{ maxWidth: '400px' }"
+          src="../../../public/images/toggle_devtools.png"
+        />
         <li>切换开发者工具到源代码“Sources”标签</li>
         <li>在文件夹目录中找到你的代码： localhost:9999/src/plugin/...</li>
         <img :class="$style.Image" src="../../../public/images/switch_to_plugin_file.png" />
