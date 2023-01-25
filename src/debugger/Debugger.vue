@@ -75,6 +75,9 @@ export default defineComponent({
           await this.plugin.run(song, params, this.remoteApis);
         } catch (e: any) {
           console.error(e);
+          callback({
+            status: 'RUNTIME_EXCEPTION',
+          });
         }
         this.isRunningPlugin = false;
 

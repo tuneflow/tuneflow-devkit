@@ -1,19 +1,14 @@
 import { decode, encode } from 'base64-arraybuffer';
 import {
   AutomationTarget,
-  AutomationValue,
-  Clip,
   ClipType,
-  LabelText,
-  Note,
-  ReadAPIs,
   Song,
-  SongAccess,
   TickToSecondStepper,
   Track,
   TrackType,
   TuneflowPlugin,
 } from 'tuneflow';
+import type { AutomationValue, Clip, LabelText, Note, ReadAPIs, SongAccess } from 'tuneflow';
 import _ from 'underscore';
 import i18next from 'i18next';
 import socketio from 'socket.io-client';
@@ -36,7 +31,7 @@ export function createReadAPIs(): ReadAPIs {
       let fileContent: ArrayBuffer;
       if (typeof audioFile === 'string') {
         // Local file.
-        const response = await new Promise((resolve, reject) => {
+        const response = await new Promise((resolve, unusedReject) => {
           SOCKETIO_CLIENT.emit('call-api', ['readFile', audioFile], (ack: any) => {
             resolve(ack);
           });
@@ -49,7 +44,7 @@ export function createReadAPIs(): ReadAPIs {
         // File object.
         fileContent = await (audioFile as File).arrayBuffer();
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve, unusedReject) => {
         const audioContext = new AudioContext();
         return audioContext.decodeAudioData(fileContent, audioBuffer => {
           // Do something with audioBuffer
@@ -58,7 +53,7 @@ export function createReadAPIs(): ReadAPIs {
       });
     },
     readFile: async (filePath: string) => {
-      return await new Promise((resolve, reject) => {
+      return await new Promise((resolve, unusedReject) => {
         SOCKETIO_CLIENT.emit('call-api', ['readFile', filePath], (ack: any) => {
           resolve(ack);
         });
@@ -70,28 +65,28 @@ export function createReadAPIs(): ReadAPIs {
       });
     },
     getAvailableAudioPlugins: async () => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve, unusedReject) => {
         SOCKETIO_CLIENT.emit('call-api', ['getAvailableAudioPlugins'], (ack: any) => {
           resolve(ack);
         });
       });
     },
     getFilesInDirectory: async (folderPath: string) => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve, unusedReject) => {
         SOCKETIO_CLIENT.emit('call-api', ['getFilesInDirectory', folderPath], (ack: any) => {
           resolve(ack);
         });
       });
     },
     resolvePath: async (path1: string, path2: string) => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve, unusedReject) => {
         SOCKETIO_CLIENT.emit('call-api', ['resolvePath', path1, path2], (ack: any) => {
           resolve(ack);
         });
       });
     },
     readPluginSpec: async (specPath: string) => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve, unusedReject) => {
         SOCKETIO_CLIENT.emit('call-api', ['readPluginSpec', specPath], (ack: any) => {
           resolve(ack);
         });
@@ -167,7 +162,7 @@ async function deserializeSong(encodedSong: string) {
   });
   for (const trackProto of songProto.tracks) {
     const track = song.createTrack({
-      type: trackProto.type as TrackType,
+      type: trackProto.type as number,
       rank: trackProto.rank as number,
     });
 
@@ -357,7 +352,7 @@ async function serializeSong(song: Song) {
     } else {
       trackProto = songProtoModule.Track.create();
       trackProto.uuid = track.getId();
-      trackProto.type = track.getType();
+      trackProto.type = track.getType() as number;
       songProto.tracks.push(trackProto);
     }
     updateTrackProtoToTrack(trackProto, track, tickToSecondStepper);
@@ -465,8 +460,8 @@ function updateTrackProtoToTrack(
 ) {
   trackProto.uuid = track.getId();
   trackProto.rank = track.getRank();
-  if (trackProto.type !== track.getType()) {
-    trackProto.type = track.getType();
+  if (trackProto.type !== (track.getType() as number)) {
+    trackProto.type = track.getType() as number;
   }
 
   if (track.getType() === TrackType.MIDI_TRACK) {

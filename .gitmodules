@@ -3,4 +3,4 @@
 	url = https://github.com/andantei/tuneflow-helloworld-plugin.git
 [submodule "protos/src"]
 	path = protos/src
-	url = https://github.com/andantei/tuneflow-proto.git
+	url = https://github.com/tuneflow/tuneflow-proto.git
