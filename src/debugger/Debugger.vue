@@ -1,19 +1,30 @@
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue';
-import { TuneflowPlugin } from 'tuneflow';
-import PluginClass from '../plugin/export';
+import pluginExport from '../plugin/export';
 import { createReadAPIs, getProxySocketClient } from './utils';
+import _ from 'underscore';
+import { TuneflowPlugin } from 'tuneflow';
 
 export default defineComponent({
   setup() {
     const isRunningPlugin = ref(false);
+    const { PluginClass, bundle } = pluginExport;
+    const bundleInfo = bundle;
     const pluginAvailable = computed(() => PluginClass !== null && PluginClass !== undefined);
     const remoteApis = computed(() => createReadAPIs());
     const socketioClient = getProxySocketClient();
     const serializedSong = ref(null as any);
+    let pluginInfo = ref(
+      _.find(
+        bundleInfo.plugins,
+        item =>
+          item.providerId === PluginClass.providerId() && item.pluginId === PluginClass.pluginId(),
+      ),
+    );
+
     const plugin = ref(null as any);
-    const pluginName = PluginClass
-      ? remoteApis.value.translateLabel(PluginClass.pluginDisplayName())
+    const pluginName = pluginInfo.value
+      ? remoteApis.value.translateLabel(pluginInfo.value.pluginDisplayName)
       : null;
     return {
       isRunningPlugin,
@@ -23,11 +34,13 @@ export default defineComponent({
       remoteApis,
       plugin,
       pluginName,
+      pluginInfo,
+      PluginClass,
     };
   },
   mounted() {
     this.socketioClient.on('set-song', async (payload, callback) => {
-      if (PluginClass) {
+      if (this.PluginClass) {
         try {
           this.plugin = null;
           this.serializedSong = payload.serializedSong;
@@ -37,9 +50,9 @@ export default defineComponent({
         callback({
           status: 'OK',
           pluginInfo: {
-            pluginDisplayName: (PluginClass as typeof TuneflowPlugin).pluginDisplayName(),
-            pluginDescription: (PluginClass as typeof TuneflowPlugin).pluginDescription(),
-            providerDisplayName: (PluginClass as typeof TuneflowPlugin).providerDisplayName(),
+            pluginDisplayName: this.pluginInfo.pluginDisplayName,
+            pluginDescription: this.pluginInfo.pluginDescription,
+            providerDisplayName: this.pluginInfo.providerDisplayName,
           },
         });
       } else {
@@ -50,9 +63,18 @@ export default defineComponent({
     });
 
     this.socketioClient.on('init-plugin', async (payload, callback) => {
-      if (PluginClass && this.serializedSong) {
+      if (this.PluginClass && this.serializedSong) {
         const song = await this.remoteApis.deserializeSong(this.serializedSong);
-        this.plugin = await (PluginClass as any).create(song, this.remoteApis);
+        this.plugin = await (this.PluginClass as typeof TuneflowPlugin).create(
+          song,
+          this.remoteApis,
+          this.pluginInfo.options
+            ? this.pluginInfo.options
+            : {
+                allowReset: true,
+                allowManualApplyAdjust: false,
+              },
+        );
 
         callback({
           status: 'OK',

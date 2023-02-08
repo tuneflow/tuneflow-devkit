@@ -17,17 +17,32 @@ const server = new Server(httpServer, {
   },
 });
 
+console.log('================================');
+console.log('IMPORTANT: Open the localhost link below in browser to start debugging your plugin');
+console.log('================================');
+
 server.of('/daw').on('connection', socket => {
-  console.log('new daw connection');
+  console.log('================================');
+  console.log('TuneFlow Connected');
+  console.log();
+  console.log('IMPORTANT: Open the localhost link below in browser to start debugging your plugin');
+
+  console.log('================================');
   dawClient = socket;
   socket.on('error', e => {
     console.error(e);
   });
-  socket.on('disconnect', reason => {
+  socket.on('disconnect', () => {
     dawClient = null;
-    console.error('daw disconnected');
+    console.log('================================');
+    console.error('TuneFlow Disconnected');
+    console.error();
+    console.error(
+      'IMPORTANT: Please also exit the "Plugin Development" plugin in TuneFlow, so that when you restart the devkit, the plugin inside TuneFlow can be initialized correctly',
+    );
+    console.log('================================');
   });
-  for(const messageType of ['set-song','init-plugin','run-plugin']) {
+  for (const messageType of ['set-song', 'init-plugin', 'run-plugin']) {
     socket.on(messageType, (payload, callback) => {
       if (!devKitClient) {
         return;
@@ -37,7 +52,6 @@ server.of('/daw').on('connection', socket => {
       });
     });
   }
-  
 });
 
 server.of('/devKit').on('connection', socket => {
@@ -46,23 +60,29 @@ server.of('/devKit').on('connection', socket => {
   socket.on('error', e => {
     console.error(e);
   });
-  socket.on('disconnect', reason => {
+  socket.on('disconnect', () => {
     devKitClient = null;
-    console.error('dev kit disconnected');
+    console.log('================================');
+    console.error('DevKit Disconnected');
+    console.error();
+    console.error(
+      'IMPORTANT: Please also exit the "Plugin Development" plugin in TuneFlow, so that when you restart the plugin, it can be initialized correctly',
+    );
+    console.log('================================');
   });
 
-  for(const messageType of ['call-api']) {
+  for (const messageType of ['call-api']) {
     socket.on(messageType, (payload, callback) => {
       // Resolve the request if it can be done here.
-      if(messageType === 'call-api') {
+      if (messageType === 'call-api') {
         const apiName = payload[0];
-        if(apiName === 'readAudioBuffer') {
+        if (apiName === 'readAudioBuffer') {
           const filePath = payload[1];
           const fileContent = fs.readFileSync(filePath);
           console.log('reading audio buffer file, length', fileContent.length);
           callback(fileContent);
           return;
-        } else  if(apiName === 'readFile') {
+        } else if (apiName === 'readFile') {
           const filePath = payload[1];
           const fileBuffer = fs.readFileSync(filePath);
           console.log('reading file', filePath, 'length', fileBuffer.length);

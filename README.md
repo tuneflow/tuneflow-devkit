@@ -130,20 +130,48 @@ git submodule add <your_repo@somegitwebsite.com.git> src/plugin/
 
 ### 激活待开发的插件
 
-接下来我们将`src/plugin/export.ts`中的 PluginClass 指向我们自己的插件。将以下代码：
+确保你的插件目录中有包文件(`bundle.json`)，里面列出了你的插件包中包含的插件的信息。它看起来像这样：
+
+``` json
+{
+  "plugins": [
+    ......
+    {
+      "providerId": "your-provider-id",
+      "pluginId": "your-plugin-id",
+      "providerDisplayName": "Your provider name",
+      "pluginDisplayName": "Your plugin name",
+      "pluginDescription": "Your plugin description"
+    },
+    ......
+  ]
+}
+```
+
+接下来我们将`src/plugin/export.ts`修改为指向我们待开发的插件。将以下代码：
 
 ```typescript
 import { HelloWorld } from './tuneflow-helloworld-plugin';
-const PluginClass = HelloWorld;
-export default PluginClass;
+import bundle from './tuneflow-helloworld-plugin/bundle.json';
+
+export default {
+  PluginClass: HelloWorld,
+  bundle,
+};
+
 ```
 
 修改为：
 
 ```typescript
-import { YourPlugin } from './your_repo';
-const PluginClass = YourPlugin;
-export default PluginClass;
+import { YourPlugin } from './path_to_your_plugin_class';
+import bundle from './path_to_your_bundle.json';
+
+export default {
+  PluginClass: YourPlugin,
+  bundle,
+};
+
 ```
 
 ### 运行 DevKit
