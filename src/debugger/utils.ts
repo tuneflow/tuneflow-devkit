@@ -195,6 +195,12 @@ async function deserializeSong(encodedSong: string) {
             audioFilePath: audioClipDataProto.audioFilePath,
             startTick: audioClipDataProto.startTick,
             duration: audioClipDataProto.duration,
+            audioData: audioClipDataProto.audioData
+              ? {
+                  format: audioClipDataProto.audioData.format as string,
+                  data: audioClipDataProto.audioData.data as Uint8Array,
+                }
+              : undefined,
           },
         });
       } else if (clipProto.type === songProtoModule.ClipType.MIDI_CLIP) {
@@ -773,6 +779,12 @@ function updateClipProtoToClip(
     }
     if (clipProto.audioClipData.audioFilePath !== clipAudioData.audioFilePath) {
       clipProto.audioClipData.audioFilePath = clipAudioData.audioFilePath;
+    }
+    if (clipAudioData.audioData && clipAudioData.audioData.data) {
+      clipProto.audioClipData.audioData = songProtoModule.AudioData.create({
+        data: clipAudioData.audioData.data,
+        format: clipAudioData.audioData.format,
+      });
     }
     if (clipProto.audioClipData.startTick !== clipAudioData.startTick) {
       clipProto.audioClipData.startTick = clipAudioData.startTick;
