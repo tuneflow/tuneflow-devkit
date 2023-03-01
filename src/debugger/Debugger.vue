@@ -4,6 +4,7 @@ import pluginExport from '../plugin/export';
 import { createReadAPIs, getProxySocketClient } from './utils';
 import _ from 'underscore';
 import { TuneflowPlugin } from 'tuneflow';
+import { decode as msgpackDecode } from '@msgpack/msgpack';
 
 export default defineComponent({
   setup() {
@@ -89,7 +90,8 @@ export default defineComponent({
     });
 
     this.socketioClient.on('run-plugin', async (payload, callback) => {
-      const { params } = payload;
+      const decodedPayload:any = msgpackDecode(payload);
+      const { params } = decodedPayload;
       if (this.plugin && this.serializedSong) {
         const song = await this.remoteApis.deserializeSong(this.serializedSong);
         this.isRunningPlugin = true;
