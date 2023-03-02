@@ -42,7 +42,7 @@ server.of('/daw').on('connection', socket => {
     );
     console.log('================================');
   });
-  for (const messageType of ['set-song', 'init-plugin', 'run-plugin']) {
+  for (const messageType of ['get-bundle-info', 'init-plugin', 'run-plugin']) {
     socket.on(messageType, (payload, callback) => {
       if (!devKitClient) {
         return;

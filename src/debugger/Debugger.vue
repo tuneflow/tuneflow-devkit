@@ -3,8 +3,8 @@ import { defineComponent, ref, computed } from 'vue';
 import pluginExport from '../plugin/export';
 import { createReadAPIs, getProxySocketClient } from './utils';
 import _ from 'underscore';
-import { TuneflowPlugin } from 'tuneflow';
-import { decode as msgpackDecode } from '@msgpack/msgpack';
+import { ReadAPIs, TuneflowPlugin } from 'tuneflow';
+import { decode as msgpackDecode, encode as msgpackEncode } from '@msgpack/msgpack';
 
 export default defineComponent({
   setup() {
@@ -14,7 +14,6 @@ export default defineComponent({
     const pluginAvailable = computed(() => PluginClass !== null && PluginClass !== undefined);
     const remoteApis = computed(() => createReadAPIs());
     const socketioClient = getProxySocketClient();
-    const serializedSong = ref(null as any);
     let pluginInfo = ref(
       _.find(
         bundleInfo.plugins,
@@ -31,7 +30,6 @@ export default defineComponent({
       isRunningPlugin,
       pluginAvailable,
       socketioClient,
-      serializedSong,
       remoteApis,
       plugin,
       pluginName,
@@ -40,14 +38,8 @@ export default defineComponent({
     };
   },
   mounted() {
-    this.socketioClient.on('set-song', async (payload, callback) => {
-      if (this.PluginClass) {
-        try {
-          this.plugin = null;
-          this.serializedSong = payload.serializedSong;
-        } catch (e: any) {
-          console.error(e);
-        }
+    this.socketioClient.on('get-bundle-info', async (payload, callback) => {
+      if (this.PluginClass && this.pluginInfo) {
         callback({
           status: 'OK',
           pluginInfo: {
@@ -64,8 +56,11 @@ export default defineComponent({
     });
 
     this.socketioClient.on('init-plugin', async (payload, callback) => {
-      if (this.PluginClass && this.serializedSong) {
-        const song = await this.remoteApis.deserializeSong(this.serializedSong);
+      const decodedPayload: any = msgpackDecode(payload);
+      if (this.PluginClass) {
+        const song = await (this.remoteApis as ReadAPIs).deserializeSongFromUint8Array(
+          decodedPayload.song,
+        );
         this.plugin = await (this.PluginClass as typeof TuneflowPlugin).create(
           song,
           this.remoteApis,
@@ -77,42 +72,51 @@ export default defineComponent({
               },
         );
 
-        callback({
-          status: 'OK',
-          paramsConfig: this.plugin.params(),
-          params: this.plugin.getParamsInternal(),
-        });
+        callback(
+          msgpackEncode({
+            status: 'OK',
+            paramsConfig: this.plugin.params(),
+            params: this.plugin.getParamsInternal(),
+          }),
+        );
       } else {
-        callback({
+        callback(msgpackEncode({
           status: 'SONG_OR_PLUGIN_NOT_READY',
-        });
+        }));
       }
     });
 
     this.socketioClient.on('run-plugin', async (payload, callback) => {
-      const decodedPayload:any = msgpackDecode(payload);
-      const { params } = decodedPayload;
-      if (this.plugin && this.serializedSong) {
-        const song = await this.remoteApis.deserializeSong(this.serializedSong);
+      const decodedPayload: any = msgpackDecode(payload);
+      const params = decodedPayload.params;
+      const encodedSong = decodedPayload.song;
+      if (this.plugin) {
+        const song = await (this.remoteApis as ReadAPIs).deserializeSongFromUint8Array(encodedSong);
         this.isRunningPlugin = true;
         try {
           await this.plugin.run(song, params, this.remoteApis);
         } catch (e: any) {
           console.error(e);
-          callback({
-            status: 'RUNTIME_EXCEPTION',
-          });
+          callback(
+            msgpackEncode({
+              status: 'RUNTIME_EXCEPTION',
+            }),
+          );
         }
         this.isRunningPlugin = false;
 
-        callback({
-          status: 'OK',
-          serializedSongResult: await this.remoteApis.serializeSong(song),
-        });
+        callback(
+          msgpackEncode({
+            status: 'OK',
+            song: await this.remoteApis.serializeSongAsUint8Array(song),
+          }),
+        );
       } else {
-        callback({
-          status: 'SONG_OR_PLUGIN_NOT_READY',
-        });
+        callback(
+          msgpackEncode({
+            status: 'SONG_OR_PLUGIN_NOT_READY',
+          }),
+        );
       }
     });
   },

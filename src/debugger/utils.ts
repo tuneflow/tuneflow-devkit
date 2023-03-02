@@ -26,7 +26,10 @@ export function createReadAPIs(): ReadAPIs {
   return {
     translateLabel: (labelText: LabelText) => getTranslatedLabelText(labelText),
     serializeSong: async (song: Song) => serializeSong(song),
+    serializeSongAsUint8Array: async (song: Song) => serializeSongToUint8Array(song),
     deserializeSong: async (encodedSong: string) => deserializeSong(encodedSong),
+    deserializeSongFromUint8Array: async (encodedSong: Uint8Array) =>
+      deserializeSongFromUint8Array(encodedSong),
     readAudioBuffer: async (audioFile: string | File) => {
       let fileContent: ArrayBuffer;
       if (typeof audioFile === 'string') {
@@ -125,9 +128,7 @@ class TuneflowUtilsPlugin extends TuneflowPlugin {
 
 const utilsPlugin = new TuneflowUtilsPlugin();
 
-async function deserializeSong(encodedSong: string) {
-  const arrayBuffer = decode(encodedSong);
-  const songProto = songProtoModule.Song.decode(new Uint8Array(arrayBuffer));
+async function songProtoToSong(songProto: songProtoModule.Song) {
   const song = new Song();
   // @ts-ignore
   song.setPluginContextInternal(utilsPlugin);
@@ -309,7 +310,17 @@ async function deserializeSong(encodedSong: string) {
   return song;
 }
 
-async function serializeSong(song: Song) {
+async function deserializeSong(encodedSong: string) {
+  const arrayBuffer = decode(encodedSong);
+  return deserializeSongFromUint8Array(new Uint8Array(arrayBuffer));
+}
+
+async function deserializeSongFromUint8Array(encodedSong: Uint8Array) {
+  const songProto = songProtoModule.Song.decode(encodedSong);
+  return songProtoToSong(songProto);
+}
+
+async function songToProto(song: Song) {
   const songProto = songProtoModule.Song.create();
   songProto.PPQ = song.getResolution();
   // Sync time signature.
@@ -372,7 +383,16 @@ async function serializeSong(song: Song) {
   );
   songProto.lastTick = song.getLastTick();
   songProto.duration = song.getDuration();
-  return encode(songProtoModule.Song.encode(songProto).finish());
+  return songProto;
+}
+
+async function serializeSong(song: Song) {
+  return encode(await serializeSongToUint8Array(song));
+}
+
+async function serializeSongToUint8Array(song: Song) {
+  const songProto = await songToProto(song);
+  return songProtoModule.Song.encode(songProto).finish();
 }
 
 function updateSongTempos(songProto: songProtoModule.Song, song: Song) {
