@@ -42,11 +42,7 @@ export default defineComponent({
       if (this.PluginClass && this.pluginInfo) {
         callback({
           status: 'OK',
-          pluginInfo: {
-            pluginDisplayName: this.pluginInfo.pluginDisplayName,
-            pluginDescription: this.pluginInfo.pluginDescription,
-            providerDisplayName: this.pluginInfo.providerDisplayName,
-          },
+          pluginInfo: this.pluginInfo,
         });
       } else {
         callback({
@@ -80,9 +76,11 @@ export default defineComponent({
           }),
         );
       } else {
-        callback(msgpackEncode({
-          status: 'SONG_OR_PLUGIN_NOT_READY',
-        }));
+        callback(
+          msgpackEncode({
+            status: 'SONG_OR_PLUGIN_NOT_READY',
+          }),
+        );
       }
     });
 

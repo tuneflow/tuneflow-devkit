@@ -88,7 +88,7 @@
     "socket.io-client": "^4.5.3",
     "ts-jest": "^28.0.5",
     "ts-node": "^10.4.0",
-    "tuneflow": "^0.35.3",
+    "tuneflow": "^0.35.6",
     "typescript": "^4.4.3",
     "underscore": "^1.13.2",
     "vite": "^3.2.1",
