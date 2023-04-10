@@ -152,6 +152,7 @@ async function songProtoToSong(songProto: songProtoModule.Song) {
     song.createStructure({
       tick: structure.tick as number,
       type: structure.type as number,
+      customName: structure.customName as string | undefined,
     });
   }
   const masterTrackProto = songProto.masterTrack as songProtoModule.Track;
@@ -437,6 +438,7 @@ function updateSongStructures(songProto: songProtoModule.Song, song: Song) {
     songProtoModule.StructureMarker.create({
       tick: item.getTick(),
       type: item.getType(),
+      customName: item.getCustomName(),
     }),
   );
 }
