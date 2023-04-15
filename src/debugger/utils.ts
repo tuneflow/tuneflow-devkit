@@ -8,7 +8,15 @@ import {
   TrackType,
   TuneflowPlugin,
 } from 'tuneflow';
-import type { AutomationValue, Clip, LabelText, Note, ReadAPIs, SongAccess } from 'tuneflow';
+import type {
+  AudioClipData,
+  AutomationValue,
+  Clip,
+  LabelText,
+  Note,
+  ReadAPIs,
+  SongAccess,
+} from 'tuneflow';
 import _ from 'underscore';
 import i18next from 'i18next';
 import socketio from 'socket.io-client';
@@ -203,6 +211,8 @@ async function songProtoToSong(songProto: songProtoModule.Song) {
                   data: audioClipDataProto.audioData.data as Uint8Array,
                 }
               : undefined,
+            pitchOffset: audioClipDataProto.pitchOffset,
+            speedRatio: audioClipDataProto.speedRatio,
           },
         });
       } else if (clipProto.type === songProtoModule.ClipType.MIDI_CLIP) {
@@ -244,6 +254,10 @@ async function songProtoToSong(songProto: songProtoModule.Song) {
             audioClipData.startTick as number,
             audioClipData.duration as number,
           );
+          (newClip.getAudioClipData() as AudioClipData).speedRatio =
+            audioClipData.speedRatio as number;
+          (newClip.getAudioClipData() as AudioClipData).pitchOffset =
+            audioClipData.pitchOffset as number;
         }
       }
     }
@@ -813,7 +827,12 @@ function updateClipProtoToClip(
     }
     if (clipProto.audioClipData.duration !== clipAudioData.duration) {
       clipProto.audioClipData.duration = clipAudioData.duration;
-      // Do not set the clip as dirty since it won't affect TF-Link.
+    }
+    if (clipProto.audioClipData.speedRatio !== clipAudioData.speedRatio) {
+      clipProto.audioClipData.speedRatio = clipAudioData.speedRatio;
+    }
+    if (clipProto.audioClipData.pitchOffset !== clipAudioData.pitchOffset) {
+      clipProto.audioClipData.pitchOffset = clipAudioData.pitchOffset;
     }
   } else if (clipProto.type !== ClipType.AUDIO_CLIP || !clipAudioData) {
     // New clip doesn't have audio clip data, clear it in the proto.
