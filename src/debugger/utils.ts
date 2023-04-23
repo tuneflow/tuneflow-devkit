@@ -8,15 +8,7 @@ import {
   TrackType,
   TuneflowPlugin,
 } from 'tuneflow';
-import type {
-  AudioClipData,
-  AutomationValue,
-  Clip,
-  LabelText,
-  Note,
-  ReadAPIs,
-  SongAccess,
-} from 'tuneflow';
+import type { AudioClipData, AutomationValue, Clip, LabelText, Note, ReadAPIs } from 'tuneflow';
 import _ from 'underscore';
 import i18next from 'i18next';
 import socketio from 'socket.io-client';
@@ -125,14 +117,7 @@ function getTranslatedLabelText(labelText: LabelText): string {
   }
 }
 
-class TuneflowUtilsPlugin extends TuneflowPlugin {
-  songAccess(): SongAccess {
-    return {
-      createTrack: true,
-      removeTrack: true,
-    };
-  }
-}
+class TuneflowUtilsPlugin extends TuneflowPlugin {}
 
 const utilsPlugin = new TuneflowUtilsPlugin();
 
@@ -162,6 +147,23 @@ async function songProtoToSong(songProto: songProtoModule.Song) {
       type: structure.type as number,
       customName: structure.customName as string | undefined,
     });
+  }
+  if (songProto.lyrics && songProto.lyrics.lines) {
+    for (const lineProto of songProto.lyrics.lines) {
+      if (!lineProto.words || lineProto.words.length === 0) {
+        continue;
+      }
+      const line = song
+        .getLyrics()
+        .createLine({ startTick: lineProto.words[0].startTick as number });
+      for (const wordProto of lineProto.words) {
+        line.createWord({
+          word: wordProto.word as string,
+          startTick: wordProto.startTick as number,
+          endTick: wordProto.endTick as number,
+        });
+      }
+    }
   }
   const masterTrackProto = songProto.masterTrack as songProtoModule.Track;
   // @ts-ignore
@@ -343,6 +345,7 @@ async function songToProto(song: Song) {
   // Sync tempo.
   updateSongTempos(songProto, song);
   updateSongStructures(songProto, song);
+  updateSongLyrics(songProto, song);
   const tickToSecondStepper = new TickToSecondStepper(song.getTempoChanges(), song.getResolution());
   // Sync master track.
   if (!songProto.masterTrack) {
@@ -455,6 +458,25 @@ function updateSongStructures(songProto: songProtoModule.Song, song: Song) {
       customName: item.getCustomName(),
     }),
   );
+}
+
+function updateSongLyrics(songProto: songProtoModule.Song, song: Song) {
+  songProto.lyrics = songProtoModule.Lyrics.create({
+    lines: song
+      .getLyrics()
+      .getLines()
+      .map(line =>
+        songProtoModule.LyricLine.create({
+          words: line.getWords().map(word =>
+            songProtoModule.LyricLine.LyricWord.create({
+              word: word.getWord(),
+              startTick: word.getStartTick(),
+              endTick: word.getEndTick(),
+            }),
+          ),
+        }),
+      ),
+  });
 }
 
 function updateSongTimeSignatures(songProto: songProtoModule.Song, song: Song) {
